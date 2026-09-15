@@ -1,6 +1,9 @@
+from typing import Any
+
 #Utils
-def _is_value_valid(value, valid_list) -> bool:
+def _is_value_valid(value, valid_list) -> tuple[bool, None | list[Any] | dict[Any, Any]]:
     is_valid = False
+    valid_values = None
     for valid_condition in valid_list:
         if valid_condition["_flag"] == "value":
             if valid_condition["value"] == value:
@@ -10,16 +13,31 @@ def _is_value_valid(value, valid_list) -> bool:
             if valid_condition["type"] == type(value):
                 is_valid = True
                 break
-    return is_valid
+        elif valid_condition["_flag"] == "list_structure" and type(value) == list:
+            result_list = normalize_list(value, valid_condition["structure"])
+            if result_list:
+                valid_values = result_list
+                is_valid = True
+                break
+        elif valid_condition["_flag"] == "dictionary_structure" and type(value) == dict:
+            result_list = normalize_dict(value, valid_condition["structure"])
+            if result_list:
+                valid_values = result_list
+                is_valid = True
+                break
+    return is_valid, valid_values
 
 #Norming
-def normalize_list(input_list, list_validation_rule, cancel_at_differents=False):
+def normalize_list(input_list, validation_rule, cancel_at_differents=False):
     normed_list = []
     for item in input_list:
-        item_is_valid = _is_value_valid(item, list_validation_rule)
+        item_is_valid, valid_values = _is_value_valid(item, validation_rule)
 
         if item_is_valid:
-            normed_list.append(item)
+            if valid_values:
+                normed_list.append(valid_values)
+            else:
+                normed_list.append(item)
         else:
             if cancel_at_differents: return None
     return normed_list
@@ -28,13 +46,21 @@ def normalize_dict(input_dict, master_dict, cancel_at_differents=False):
     normed_dict = {}
     for key, value in input_dict.items():
         if key in master_dict:
-            other_valid_conditions = master_dict[key].get("other_valid_conditions")
-            default_value = master_dict[key].get("default_value")
+            condition = master_dict[key]
 
-            is_valid = _is_value_valid(value, other_valid_conditions)
+            if "_flag" in condition:
+                other_valid_conditions = [condition]
+                default_value = None
+            else:
+                other_valid_conditions = condition.get("other_valid_conditions")
+                default_value = condition.get("default_value")
+            is_valid, valid_values = _is_value_valid(value, other_valid_conditions)
 
             if is_valid:
-                normed_dict[key] = value
+                if valid_values:
+                    normed_dict[key] = valid_values
+                else:
+                    normed_dict[key] = value
             else:
                 if cancel_at_differents: return None
                 normed_dict[key] = default_value["value"]
@@ -64,7 +90,7 @@ def create_validation_rule(*args):
 #Instance creation
 def create_valid_dictionary_condition(default_value, *args):
     """Given parameters must be a dictionary with the type 'valid_value'!"""
-    if default_value["_flag"] != "value": return None
+    if default_value["_flag"] != "value" and default_value["_flag"] != "structure": return None
     valid_conditions = []
     for arg in args:
         if arg == default_value: continue
@@ -90,8 +116,16 @@ def create_valid_type(allowed_type):
         "type": allowed_type,
     }
 
-def create_valid_structure(structure):
+def create_valid_dictionary_structure(master_dict):
+    if type(master_dict) != dict: return None
     return {
-        "_flag": "structure",
-        "structure": structure
+        "_flag": "dictionary_structure",
+        "structure": master_dict,
+    }
+
+def create_valid_list_structure(validation_rule):
+    if type(validation_rule) != list: return None
+    return {
+        "_flag": "list_structure",
+        "structure": validation_rule,
     }
