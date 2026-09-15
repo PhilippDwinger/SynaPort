@@ -24,10 +24,10 @@ def add_model(config, security_key):
     global models
     model_id = get_free_id()
     banker_entry = {
-        'id': model_id,
-        'name': config.name,
-        'config': config,
-        'security_key': security_key,
+        "id": model_id,
+        "config": config,
+        "security_key": security_key,
+        "architecture" : [],
     }
     models[model_id] = banker_entry
     return model_id

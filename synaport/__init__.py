@@ -1,4 +1,5 @@
 from synaport import custodian
+from synaport.core import architecture
 from synaport.model_creation import SynaPortModel
 import synaport.security as security
 
@@ -15,19 +16,22 @@ class SynaPort:
     def __repr__(self) -> str:
         return str(self.__dict__)
 
-    def register_model(self, config):
-        model = SynaPortModel(config)
-        self.connected_models.append(config)
+    def register_model(self, raw_config):
+        model = SynaPortModel(raw_config)
         security_key = security.get_key()
-        model_id = custodian.save_model(config, security_key)
+        model_id = custodian.save_model(model, security_key)
+
+        neuronal_network = architecture.build_nn_from_name(model.config["architecture_type"], model.config)
 
         app = {
-            "model": model,
+            "synaport_model": model,
             "key": security_key,
             "model_id": model_id,
         }
 
-        return app
+        self.connected_models.append(app)
+
+        return app, neuronal_network
 
     def start_server(self):
         pass
