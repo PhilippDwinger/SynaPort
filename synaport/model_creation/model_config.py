@@ -34,9 +34,10 @@ neuron_amount_condition = create_valid_dictionary_condition(
 )
 
 activation_function_condition = create_valid_dictionary_condition(
-    cv("relu"),
+    cv("leaky_relu"),
     cv("sigmoid"),
     cv("tanh"),
+    cv("relu"),
 )
 
 initialization_function_condition = create_valid_dictionary_condition(
@@ -45,7 +46,7 @@ initialization_function_condition = create_valid_dictionary_condition(
     cv("he_normal"),
     cv("xavier_uniform"),
     cv("xavier_normal"),
-    cv("othogonal"),
+    cv("orthogonal"),
 )
 
 hidden_layer_master_dict = create_master_dict(
@@ -115,7 +116,7 @@ class ModelConfig:
         self.input_amount = input_amount
     def set_output_neuron_amount(self, output_amount):
         self.output_amount = output_amount
-    def add_hidden_layer(self, neuron_amount, activation_function="relu", initialization_function="auto"):
+    def add_hidden_layer(self, neuron_amount, activation_function="leaky_relu", initialization_function="auto"):
         self.hidden_layers.append({
             "NeuronAmount": neuron_amount,
             "ActivationFunction": activation_function.lower(),
