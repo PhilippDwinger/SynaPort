@@ -3,7 +3,7 @@ from logging import warning
 from synaport.core.architecture.dense_neuronal_network import DenseNeuronalNetwork
 
 def build_dense_nn(config):
-    neuronal_network = DenseNeuronalNetwork(config["input_amount"], config["output_amount"], config["hidden_layers"])
+    neuronal_network = DenseNeuronalNetwork(config.input_amount, config.output_amount, config.hidden_layers)
     return neuronal_network
 
 def build_nn_from_name(name, config):

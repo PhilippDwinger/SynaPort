@@ -127,6 +127,22 @@ class ModelConfig:
         for hidden_layer in hidden_layer_structure:
             if hidden_layer["NeuronAmount"] is not None and hidden_layer["ActivationFunction"] is not None:
                 self.add_hidden_layer(hidden_layer["NeuronAmount"], hidden_layer["ActivationFunction"])
+    def set_config_to_dict(self, given_config_dict):
+        print(given_config_dict)
+        raw_config = {}
+        raw_config["name"] = given_config_dict["name"]
+        raw_config["input_amount"] = given_config_dict["input_amount"]
+        raw_config["output_amount"] = given_config_dict["output_amount"]
+        raw_config["hidden_layers"] = given_config_dict["hidden_layers"]
+        raw_config["architecture_type"] = given_config_dict["architecture_type"]
+
+        normal_config = normalize_dict(raw_config, master_dict)
+
+        self.name = normal_config["name"]
+        self.input_amount = normal_config["input_amount"]
+        self.output_amount = normal_config["output_amount"]
+        self.hidden_layers = normal_config["hidden_layers"]
+        self.architecture_type = normal_config["architecture_type"]
     def set_name(self, name):
         self.name = name
     def set_architecture_type(self, architecture_type):

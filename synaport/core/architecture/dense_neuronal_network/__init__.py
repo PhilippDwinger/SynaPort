@@ -1,6 +1,8 @@
 import random
 from logging import warn, warning
 
+import numpy as np
+
 from synaport.core.activation_functions import *
 from synaport.core.initialization_functions import he_uniform, he_normal, xavier_uniform, xavier_normal, orthogonal
 
@@ -218,7 +220,13 @@ class DenseNeuronalNetwork:
 
                     current_deltas = hidden_layer_deltas
 
+    def predict(self, given_inputs, output_neuron_names):
+        forward_pass = self.forward(given_inputs)
+        outputs = forward_pass[-1]
 
+        highest_output_neuron_index = np.argmax(outputs)
+
+        return output_neuron_names[highest_output_neuron_index]
 
     def reset_neurons(self):
         self.__init__(self._init_data_set["input_amount"], self._init_data_set["output_amount"], self._init_data_set["hidden_layers"])

@@ -2,5 +2,7 @@
 name = "synaport"
 version = "0.1.0"
 dependencies = [
-    "numpy>=2.0"
+    "numpy>=2.0",
+    "fastapi",
+    "uvicorn"
 ]
