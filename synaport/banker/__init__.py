@@ -18,7 +18,7 @@ def get_free_id():
 def get_model(model_id):
     return models[model_id]
 
-def add_model(config, security_key, neuronal_network, model_architecture):
+def add_model(config, security_key, neuronal_network):
     global models
     model_id = get_free_id()
     if not model_id: return None
@@ -26,11 +26,13 @@ def add_model(config, security_key, neuronal_network, model_architecture):
         "id": model_id,
         "config": config,
         "security_key": security_key,
-        "architecture" : model_architecture,
         "neuronal_network" : neuronal_network
     }
     models[model_id] = banker_entry
     return model_id
 
-def get_model(model_id):
-    return models[model_id]
+def change_neuronal_network(model_id, config, neuronal_network):
+    global models
+    entry = models[model_id]
+    entry["config"] = config
+    entry["neuronal_network"] = neuronal_network

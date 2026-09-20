@@ -29,4 +29,4 @@ config_dict = {
 app = SynaPort("0.0.0.0", 5000)
 #ai, nn = app.register_model(config_dict)
 
-app.start_server()
+app.start("unsafe")

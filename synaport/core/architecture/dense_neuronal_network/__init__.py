@@ -1,4 +1,5 @@
 import random
+import types
 from logging import warn, warning
 
 import numpy as np
@@ -60,6 +61,92 @@ def get_initialization_from_name(initialization_function_name, activation_functi
     else:
         warning(f"Initialization function {initialization_function_name} not implemented")
         return xavier_uniform
+
+def serialize_neuronal_network(value):
+    if isinstance(value, dict):
+        return {
+            key: serialize_neuronal_network(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, (list, tuple)):
+        return [
+            serialize_neuronal_network(item)
+            for item in value
+        ]
+
+    if isinstance(value, Neuron):
+        return {
+            "__type__": "Neuron",
+            "value": serialize_neuronal_network(value.__dict__)
+        }
+
+    if isinstance(value, Dense):
+        return {
+            "__type__": "Dense",
+            "value": serialize_neuronal_network(value.__dict__)
+        }
+
+    if isinstance(value, DenseNeuronalNetwork):
+        return {
+            "__type__": "DenseNeuronalNetwork",
+            "value": serialize_neuronal_network(value.__dict__)
+        }
+
+    if isinstance(value, np.ndarray):
+        return {
+            "__type__": "numpy.ndarray",
+            "value": value.tolist()
+        }
+
+    if isinstance(value, types.FunctionType):
+        return {
+            "__type__": "function",
+            "value": value.__name__
+        }
+
+    if isinstance(value, np.floating):
+        return float(value)
+
+    if isinstance(value, np.integer):
+        return int(value)
+
+    return value
+
+def deserialize_neuronal_network(value):
+    if isinstance(value, dict):
+        if "__type__" in value:
+            object_type = value["__type__"]
+            raw_value = value["value"]
+
+            if object_type == "numpy.ndarray":
+                return np.array(raw_value)
+
+            if object_type == "function":
+                return raw_value
+
+            if object_type == "Neuron":
+                neuron = Neuron.__new__(Neuron)
+                neuron.__dict__ = deserialize_neuronal_network(raw_value)
+                return neuron
+
+            if object_type == "Dense":
+                dense = Dense.__new__(Dense)
+                dense.__dict__ = deserialize_neuronal_network(raw_value)
+                return dense
+
+        return {
+            key: deserialize_neuronal_network(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, list):
+        return [
+            deserialize_neuronal_network(item)
+            for item in value
+        ]
+
+    return value
 
 class Neuron:
     def __init__(self, weights, bias):
@@ -134,99 +221,6 @@ class DenseNeuronalNetwork:
 
         cache.append(self.output_layer.forward(given_inputs))
         return cache
-
-    def train(self, data_set, learning_rate, iterations, shuffle_data_set=True):
-        if shuffle_data_set:
-            random.shuffle(data_set)
-        for i in range(iterations):
-            for data_set_entry in data_set:
-                data_set_inputs = data_set_entry[0]
-                data_set_outputs = data_set_entry[1]
-
-                forward_pass = self.forward(data_set_inputs)
-
-                network_deltas = []
-                network_gradients = []
-
-                # Output Layer
-                output_deltas = []
-                output_gradients = []
-
-                last_hidden_layer_output = forward_pass[-2]
-                for neuron_index, neuron in enumerate(self.output_layer.neurons):
-                    output_layer_outputs = forward_pass[-1]
-                    neuron_output = output_layer_outputs[neuron_index]
-                    neuron_delta = 2 * (neuron_output - data_set_outputs[neuron_index]) * sigmoid_derivative(
-                        neuron_output)
-
-                    neuron_weight_gradients = []
-                    for weight_index, weight in enumerate(
-                            neuron.weights):  # <--- HIER GEÄNDERT: `weight_index` hinzugefügt, um das Gewicht direkt im RAM anzusteuern
-                        weight_input = last_hidden_layer_output[
-                            weight_index]  # <--- HIER GEÄNDERT: Holt den passenden Input über den Index aus dem Vorwärtspass
-                        weight_gradient = neuron_delta * weight_input
-                        weight_gradient = max(-1, min(1, weight_gradient))
-                        neuron_weight_gradients.append(weight_gradient)
-
-                        neuron.weights[
-                            weight_index] -= learning_rate * weight_gradient  # <--- NEU: Zieht den berechneten Fehler-Schritt SOFORT vom echten Gewicht ab!
-
-                    neuron.bias -= learning_rate * neuron_delta  # <--- NEU: Zieht den Fehler auch direkt vom Bias ab, damit das Neuron mitsamt seiner Kurve lernt!
-                    output_gradients.append(neuron_weight_gradients)
-                    output_deltas.append(neuron_delta)
-
-                network_deltas.append(output_deltas)
-                network_gradients.append(output_gradients)
-
-                # Hidden Layers
-                current_deltas = output_deltas
-                for hidden_layer_index, hidden_layer in enumerate(reversed(self.hidden_layers)):
-                    hidden_layer_deltas = []
-                    hidden_layer_gradients = []
-                    layer_entry = forward_pass[-hidden_layer_index - 2]
-                    layer_input_layer_deltas = current_deltas
-                    layer_input_layer_inputs = None
-
-                    if -hidden_layer_index - 3 >= -len(forward_pass):
-                        layer_input_layer_inputs = forward_pass[-hidden_layer_index - 3]
-                    else:
-                        layer_input_layer_inputs = data_set_inputs
-
-                    for neuron_index, neuron in enumerate(hidden_layer.neurons):
-                        neuron_gradients = []
-                        neuron_fault = 0
-                        neuron_output = layer_entry[neuron_index]
-
-                        for weight, given_delta in zip(neuron.weights, layer_input_layer_deltas):
-                            neuron_fault += given_delta * weight
-
-                        neuron_delta = hidden_layer.derivative_function(neuron_output) * neuron_fault
-
-                        for weight_index, given_input in enumerate(
-                                layer_input_layer_inputs):
-                            weight_gradient = neuron_delta * given_input
-                            weight_gradient = max(-1, min(1, weight_gradient))
-                            neuron_gradients.append(weight_gradient)
-
-                            neuron.weights[
-                                weight_index] -= learning_rate * weight_gradient
-
-                        neuron.bias -= learning_rate * neuron_delta
-                        hidden_layer_deltas.append(neuron_delta)
-                        hidden_layer_gradients.append(neuron_gradients)
-
-                    network_deltas.append(hidden_layer_deltas)
-                    network_gradients.append(hidden_layer_gradients)
-
-                    current_deltas = hidden_layer_deltas
-
-    def predict(self, given_inputs, output_neuron_names):
-        forward_pass = self.forward(given_inputs)
-        outputs = forward_pass[-1]
-
-        highest_output_neuron_index = np.argmax(outputs)
-
-        return output_neuron_names[highest_output_neuron_index]
 
     def reset_neurons(self):
         self.__init__(self._init_data_set["input_amount"], self._init_data_set["output_amount"], self._init_data_set["hidden_layers"])

@@ -6,7 +6,6 @@ from synaport.core.activation_functions import sigmoid_derivative
 def train(neuronal_network, data_set, learning_rate, iterations, shuffle_data_set=True):
     if shuffle_data_set:
         random.shuffle(data_set)
-
     for i in range(iterations):
         for data_set_entry in data_set:
             data_set_inputs = data_set_entry["input"]
@@ -22,24 +21,25 @@ def train(neuronal_network, data_set, learning_rate, iterations, shuffle_data_se
             output_gradients = []
 
             last_hidden_layer_output = forward_pass[-2]
-            output_layer_outputs = forward_pass[-1]
-
             for neuron_index, neuron in enumerate(neuronal_network.output_layer.neurons):
+                output_layer_outputs = forward_pass[-1]
                 neuron_output = output_layer_outputs[neuron_index]
-
-                neuron_delta = (
-                    2
-                    * (neuron_output - data_set_outputs[neuron_index])
-                    * sigmoid_derivative(neuron_output)
-                )
+                neuron_delta = 2 * (neuron_output - data_set_outputs[neuron_index]) * sigmoid_derivative(
+                    neuron_output)
 
                 neuron_weight_gradients = []
-
-                for weight_index, weight in enumerate(neuron.weights):
-                    weight_input = last_hidden_layer_output[weight_index]
+                for weight_index, weight in enumerate(
+                        neuron.weights):  # <--- HIER GEÄNDERT: `weight_index` hinzugefügt, um das Gewicht direkt im RAM anzusteuern
+                    weight_input = last_hidden_layer_output[
+                        weight_index]  # <--- HIER GEÄNDERT: Holt den passenden Input über den Index aus dem Vorwärtspass
                     weight_gradient = neuron_delta * weight_input
+                    weight_gradient = max(-1, min(1, weight_gradient))
                     neuron_weight_gradients.append(weight_gradient)
 
+                    neuron.weights[
+                        weight_index] -= learning_rate * weight_gradient  # <--- NEU: Zieht den berechneten Fehler-Schritt SOFORT vom echten Gewicht ab!
+
+                neuron.bias -= learning_rate * neuron_delta  # <--- NEU: Zieht den Fehler auch direkt vom Bias ab, damit das Neuron mitsamt seiner Kurve lernt!
                 output_gradients.append(neuron_weight_gradients)
                 output_deltas.append(neuron_delta)
 
@@ -48,48 +48,38 @@ def train(neuronal_network, data_set, learning_rate, iterations, shuffle_data_se
 
             # Hidden Layers
             current_deltas = output_deltas
-
-            for hidden_layer_index, hidden_layer in enumerate(
-                    reversed(neuronal_network.hidden_layers)
-            ):
+            for hidden_layer_index, hidden_layer in enumerate(reversed(neuronal_network.hidden_layers)):
                 hidden_layer_deltas = []
                 hidden_layer_gradients = []
-
                 layer_entry = forward_pass[-hidden_layer_index - 2]
+                layer_input_layer_deltas = current_deltas
+                layer_input_layer_inputs = None
 
                 if -hidden_layer_index - 3 >= -len(forward_pass):
                     layer_input_layer_inputs = forward_pass[-hidden_layer_index - 3]
                 else:
                     layer_input_layer_inputs = data_set_inputs
 
-                if hidden_layer_index == 0:
-                    next_layer = neuronal_network.output_layer
-                else:
-                    next_layer = neuronal_network.hidden_layers[
-                        len(neuronal_network.hidden_layers) - hidden_layer_index
-                    ]
-
                 for neuron_index, neuron in enumerate(hidden_layer.neurons):
                     neuron_gradients = []
                     neuron_fault = 0
-
                     neuron_output = layer_entry[neuron_index]
 
-                    for next_neuron_index, given_delta in enumerate(current_deltas):
-                        next_neuron = next_layer.neurons[next_neuron_index]
-                        next_weight = next_neuron.weights[neuron_index]
+                    for weight, given_delta in zip(neuron.weights, layer_input_layer_deltas):
+                        neuron_fault += given_delta * weight
 
-                        neuron_fault += given_delta * next_weight
+                    neuron_delta = hidden_layer.derivative_function(neuron_output) * neuron_fault
 
-                    neuron_delta = (
-                        hidden_layer.derivative_function(neuron_output)
-                        * neuron_fault
-                    )
-
-                    for given_input in layer_input_layer_inputs:
+                    for weight_index, given_input in enumerate(
+                            layer_input_layer_inputs):
                         weight_gradient = neuron_delta * given_input
+                        weight_gradient = max(-1, min(1, weight_gradient))
                         neuron_gradients.append(weight_gradient)
 
+                        neuron.weights[
+                            weight_index] -= learning_rate * weight_gradient
+
+                    neuron.bias -= learning_rate * neuron_delta
                     hidden_layer_deltas.append(neuron_delta)
                     hidden_layer_gradients.append(neuron_gradients)
 
@@ -97,17 +87,3 @@ def train(neuronal_network, data_set, learning_rate, iterations, shuffle_data_se
                 network_gradients.append(hidden_layer_gradients)
 
                 current_deltas = hidden_layer_deltas
-
-            # New weights and biases
-            layers = [neuronal_network.output_layer]
-            layers.extend(reversed(neuronal_network.hidden_layers))
-
-            for layer_index, layer in enumerate(layers):
-                for neuron_index, neuron in enumerate(layer.neurons):
-                    neuron_delta = network_deltas[layer_index][neuron_index]
-
-                    neuron.bias -= learning_rate * neuron_delta
-
-                    for weight_index, weight in enumerate(neuron.weights):
-                        weight_gradient = network_gradients[layer_index][neuron_index][weight_index]
-                        neuron.weights[weight_index] -= learning_rate * weight_gradient
