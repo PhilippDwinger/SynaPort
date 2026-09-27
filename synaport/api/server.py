@@ -7,7 +7,7 @@ import synaport
 from synaport.core.architecture.dense_neuronal_network import serialize_neuronal_network, deserialize_neuronal_network
 
 
-def create_app():
+def create_app(current_synaport_app : synaport.SynaPort):
     fast_api_app = FastAPI()
 
     @fast_api_app.get("/")
@@ -38,6 +38,12 @@ def create_app():
         model_copy["neuronal_network"] = raw_nn_architecture
 
         return model_copy
+
+    @fast_api_app.post("/model/restart")
+    def restart_synaport():
+        print("Restarting SynaPort...")
+        current_synaport_app.restart()
+        return None
 
     @fast_api_app.post("/model/push")
     def set_model_banker_entry(data: dict):

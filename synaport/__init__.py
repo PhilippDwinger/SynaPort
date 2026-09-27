@@ -5,6 +5,7 @@ import uvicorn
 from synaport.api import server
 import synaport.security as security
 import synaport.core.learning as learning
+import os
 
 def create_model(raw_config: dict):
     synaport_model = SynaPortModel(raw_config)
@@ -66,3 +67,6 @@ class SynaPort:
 
     def stop(self):
         pass
+
+    def restart(self):
+        os._exit(0)
