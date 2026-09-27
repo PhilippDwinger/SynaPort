@@ -1,8 +1,12 @@
 import os
 import uvicorn
+
+from synaport import SynaPort
 from synaport.api import server
 
-app = server.create_app()
+SynaPortApp = SynaPort()
+
+app = server.create_app(SynaPortApp)
 
 if __name__ == "__main__":
     uvicorn.run(
