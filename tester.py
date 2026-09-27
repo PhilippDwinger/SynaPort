@@ -26,7 +26,7 @@ config_dict = {
     "architecture_type" : "dense_neuronal_network"
 }
 
-app = SynaPort("0.0.0.0", 5000)
+#app = SynaPort("0.0.0.0", 5000)
 #ai, nn = app.register_model(config_dict)
 
 #app.start("unsafe")
