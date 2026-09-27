@@ -16,6 +16,7 @@ def get_model(model_id: str):
     return banker.get_model(model_id)
 
 def change_model_neuronal_network(model_id, config, nn):
+    print("Changing neural network", model_id)
     banker.change_neuronal_network(model_id, config, nn)
 
 
@@ -50,7 +51,7 @@ class SynaPort:
         pass
 
     def start(self, connection_mode="unsafe"):
-        app = server.create_app()
+        app = server.create_app(self)
 
         if connection_mode == "safe":
             uvicorn.run(

@@ -6,7 +6,9 @@ def train_model(model_id, training_data, iterations, learning_type, learning_rat
     nn = model["neuronal_network"]
 
     if learning_type == "supervised":
-        return supervised.train(nn, training_data, learning_rate, iterations, True)
+        result = supervised.train(nn, training_data, learning_rate, iterations, True)
+        print("Training Complete")
+        return result
     elif learning_type == "reinforced":
         return
 

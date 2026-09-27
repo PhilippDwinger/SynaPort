@@ -123,7 +123,20 @@ def deserialize_neuronal_network(value):
                 return np.array(raw_value)
 
             if object_type == "function":
-                return raw_value
+                FunctionName = raw_value
+
+                FunctionMappings = {
+                    "sigmoid": sigmoid,
+                    "relu": relu,
+                    "tanh": tanh,
+                    "leaky_relu": leaky_relu,
+                    "sigmoid_derivative": sigmoid_derivative,
+                    "relu_derivative": relu_derivative,
+                    "tanh_derivative": tanh_derivative,
+                    "leaky_relu_derivative": leaky_relu_derivative,
+                }
+
+                return FunctionMappings.get(FunctionName)
 
             if object_type == "Neuron":
                 neuron = Neuron.__new__(Neuron)
@@ -134,6 +147,11 @@ def deserialize_neuronal_network(value):
                 dense = Dense.__new__(Dense)
                 dense.__dict__ = deserialize_neuronal_network(raw_value)
                 return dense
+
+            if object_type == "DenseNeuronalNetwork":
+                network = DenseNeuronalNetwork.__new__(DenseNeuronalNetwork)
+                network.__dict__ = deserialize_neuronal_network(raw_value)
+                return network
 
         return {
             key: deserialize_neuronal_network(item)

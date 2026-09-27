@@ -29,10 +29,12 @@ def add_model(config, security_key, neuronal_network):
         "neuronal_network" : neuronal_network
     }
     models[model_id] = banker_entry
+    print("Added model", model_id)
     return model_id
 
 def change_neuronal_network(model_id, config, neuronal_network):
     global models
+    print("Changing neuronal network", model_id)
     entry = models[model_id]
     entry["config"] = config
     entry["neuronal_network"] = neuronal_network
